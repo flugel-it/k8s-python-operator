@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exampleoperator-controller
+  labels:
+    app: exampleoperator-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exampleoperator-controller
+  template:
+    metadata:
+      labels:
+        app: exampleoperator-controller
+    spec:
+      containers:
+      - image: exampleoperator:dev
+        name: exampleoperator-controller
