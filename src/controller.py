@@ -9,15 +9,17 @@ import copy
 
 logger = logging.getLogger('controller')
 
+
 class Controller(threading.Thread):
     """Reconcile current and desired state by listening for events and making
        calls to Kubernetes API.
     """
+
     def __init__(self, pods_watcher, immortalcontainers_watcher, corev1api,
                  customsapi, custom_group, custom_version, custom_plural,
                  custom_kind, workqueue_size=10):
         """Initializes the controller.
-        
+
         :param pods_watcher: Watcher for pods events.
         :param immortalcontainers_watcher: Watcher for immortalcontainers custom
                                            resource events.
@@ -42,7 +44,8 @@ class Controller(threading.Thread):
         self.custom_plural = custom_plural
         self.custom_kind = custom_kind
         self.pods_watcher.add_handler(self._handle_pod_event)
-        self.immortalcontainers_watcher.add_handler(self._handle_immortalcontainer_event)
+        self.immortalcontainers_watcher.add_handler(
+            self._handle_immortalcontainer_event)
 
     def _handle_pod_event(self, event):
         """Handle an event from the pods watcher putting the pod's corresponding
@@ -52,15 +55,15 @@ class Controller(threading.Thread):
         if obj.metadata.owner_references is not None:
             for owner_ref in obj.metadata.owner_references:
                 if owner_ref.api_version == self.custom_group+"/"+self.custom_version and \
-                    owner_ref.kind == self.custom_kind:
-                        owner_name = owner_ref.name
+                        owner_ref.kind == self.custom_kind:
+                    owner_name = owner_ref.name
         if owner_name != "":
             self._queue_work(obj.metadata.namespace+"/"+owner_name)
 
     def _handle_immortalcontainer_event(self, event):
         """Handle an event from the immortalcontainers watcher putting the
            resource name in the `workqueue`."""
-        self._queue_work(event['object']['metadata']['namespace']+
+        self._queue_work(event['object']['metadata']['namespace'] +
                          "/"+event['object']['metadata']['name'])
 
     def _queue_work(self, resource_key):
@@ -84,7 +87,8 @@ class Controller(threading.Thread):
                 self._reconcile_state(e)
                 self.workqueue.task_done()
             except Exception as ex:
-                logger.error("Error _reconcile state {:s} {:s}".format(e, str(ex)))
+                logger.error(
+                    "Error _reconcile state {:s} {:s}".format(e, str(ex)))
 
     def stop(self):
         """Stops this controller thread"""
@@ -103,7 +107,8 @@ class Controller(threading.Thread):
                 self.custom_group, self.custom_version, ns, self.custom_plural, name)
         except ApiException as e:
             if e.status == 404:
-                logger.info("Element {:s} in workqueue no longel exist".format(resource_key))
+                logger.info(
+                    "Element {:s} in workqueue no longel exist".format(resource_key))
                 return
             raise e
 
@@ -114,10 +119,12 @@ class Controller(threading.Thread):
         pod = None
         if status['currentPod'] != "":
             try:
-                pod = self.corev1api.read_namespaced_pod(status['currentPod'], ns)
+                pod = self.corev1api.read_namespaced_pod(
+                    status['currentPod'], ns)
             except ApiException as e:
                 if e.status != 404:
-                    logger.info("Error retrieving pod {:s} for immortalcontainer {:s}".format(status['currentPod'], resource_key))
+                    logger.info("Error retrieving pod {:s} for immortalcontainer {:s}".format(
+                        status['currentPod'], resource_key))
                     raise e
 
         if pod is None:
@@ -143,7 +150,6 @@ class Controller(threading.Thread):
         new_status = copy.deepcopy(immortalcontainer)
         new_status['status'] = dict(currentPod=pod.metadata.name)
         return new_status
-
 
     def _get_status(self, immortalcontainer):
         """Get the status from an ImmortalContainer. If `immortalcontainer`

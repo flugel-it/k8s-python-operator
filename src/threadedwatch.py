@@ -19,6 +19,7 @@ class ThreadedWatchStream(threading.Thread):
         watcher.start()
         watcher.join()
     """
+
     def __init__(self, func, *args, **kwargs):
         """Initialize this watcher.
 
@@ -41,7 +42,8 @@ class ThreadedWatchStream(threading.Thread):
            directly, but using `start()`.
         """
         self.watcher = watch.Watch()
-        stream = self.watcher.stream(self.func, *self.func_args, **self.func_kwargs)
+        stream = self.watcher.stream(
+            self.func, *self.func_args, **self.func_kwargs)
         for event in stream:
             for handler in self.handlers:
                 handler(event)
