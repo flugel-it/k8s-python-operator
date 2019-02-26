@@ -2,6 +2,10 @@
 
 This repository implements an example Kubernetes operator in Python 3, called "ImmortalContainers". This operator enables the user to define, using custom resources, containers that must run and if terminated must be restarted.
 
+The following diagram shows the main components of this operator controller:
+
+![components diagram](https://github.com/flugel-it/k8s-python-operator/raw/master/docs/components_diagram.png "Components diagram")
+
 ## Venv and project dependencies
 
 To create a virtual env and install the project dependencies follow these steps:
