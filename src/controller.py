@@ -164,7 +164,7 @@ class Controller(threading.Thread):
         labels = dict(controller=immortalcontainer['metadata']['name'])
         return models.V1Pod(
             metadata=models.V1ObjectMeta(
-                generate_name="immortalpod-",
+                name=immortalcontainer['metadata']['name']+"-immortalpod",
                 labels=labels,
                 namespace=immortalcontainer['metadata']['namespace'],
                 owner_references=[models.V1OwnerReference(
