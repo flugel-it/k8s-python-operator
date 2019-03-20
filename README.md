@@ -67,7 +67,7 @@ INFO:controller:Controller starting
 Once the operator is running you can create immortal containers using a custom resource like this one:
 
 ```yaml
-apiVersion: exampleoperator.flugel.it/v1alpha1
+apiVersion: immortalcontainer.flugel.it/v1alpha1
 kind: ImmortalContainer
 metadata:
   name: example-immortal-container

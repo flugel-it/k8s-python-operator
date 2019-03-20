@@ -1,7 +1,6 @@
 import logging
 import queue
 import threading
-from pprint import pprint
 
 from kubernetes.client.rest import ApiException
 from kubernetes.client import models
@@ -62,19 +61,19 @@ class Controller(threading.Thread):
 
     def _handle_immortalcontainer_event(self, event):
         """Handle an event from the immortalcontainers watcher putting the
-           resource name in the `workqueue`."""
+           object name in the `workqueue`."""
         self._queue_work(event['object']['metadata']['namespace'] +
                          "/"+event['object']['metadata']['name'])
 
-    def _queue_work(self, resource_key):
-        """Add a resource name to the work queue."""
-        if len(resource_key.split("/")) != 2:
-            logger.error("Invalid resource key: {:s}".format(resource_key))
+    def _queue_work(self, object_key):
+        """Add a object name to the work queue."""
+        if len(object_key.split("/")) != 2:
+            logger.error("Invalid object key: {:s}".format(object_key))
             return
-        self.workqueue.put(resource_key)
+        self.workqueue.put(object_key)
 
     def run(self):
-        """Dequeue and process resources from the `workqueue`. This method
+        """Dequeue and process objects from the `workqueue`. This method
            should not be called directly, but using `start()"""
         self.running = True
         logger.info('Controller starting')
@@ -88,76 +87,75 @@ class Controller(threading.Thread):
                 self.workqueue.task_done()
             except Exception as ex:
                 logger.error(
-                    "Error _reconcile state {:s} {:s}".format(e, str(ex)))
+                    "Error _reconcile state {:s}".format(e),
+                    exc_info=True)
 
     def stop(self):
         """Stops this controller thread"""
         self.running = False
         self.workqueue.put(None)
 
-    def _reconcile_state(self, resource_key):
-        """Make changes to go from current state to desired state and update 
-           resource status."""
-        logger.info("Reconcile state: {:s}".format(resource_key))
-        ns, name = resource_key.split("/")
+    def _reconcile_state(self, object_key):
+        """Make changes to go from current state to desired state and updates
+           object status."""
+        logger.info("Reconcile state: {:s}".format(object_key))
+        ns, name = object_key.split("/")
 
-        # Get resource if it exists
+        # Get object if it exists
         try:
             immortalcontainer = self.customsapi.get_namespaced_custom_object(
                 self.custom_group, self.custom_version, ns, self.custom_plural, name)
         except ApiException as e:
             if e.status == 404:
                 logger.info(
-                    "Element {:s} in workqueue no longel exist".format(resource_key))
+                    "Element {:s} in workqueue no longer exist".format(object_key))
                 return
             raise e
 
-        # Get resource status
-        status = self._get_status(immortalcontainer)
-
-        # Get associated pod
+        # Create pod definition
+        pod_definition = self._new_pod(immortalcontainer)
         pod = None
-        if status['currentPod'] != "":
-            try:
-                pod = self.corev1api.read_namespaced_pod(
-                    status['currentPod'], ns)
-            except ApiException as e:
-                if e.status != 404:
-                    logger.info("Error retrieving pod {:s} for immortalcontainer {:s}".format(
-                        status['currentPod'], resource_key))
-                    raise e
+        try:
+            pod = self.corev1api.read_namespaced_pod(
+                pod_definition.metadata.name, ns)
+        except ApiException as e:
+            if e.status != 404:
+                logger.info("Error retrieving pod {:s} for immortalcontainer {:s}".format(
+                    pod_definition.metadata.name, object_key))
+                raise e
 
         if pod is None:
             # If no pod exists create one
-            pod_request = self._new_pod(immortalcontainer)
-            pod = self.corev1api.create_namespaced_pod(ns, pod_request)
-
-        # update status
-        self._update_status(immortalcontainer, pod)
+            pod = self.corev1api.create_namespaced_pod(ns, pod_definition)
+            # update status
+            self._update_status(immortalcontainer, pod)
 
     def _update_status(self, immortalcontainer, pod):
         """Updates an ImmortalContainer status"""
         new_status = self._calculate_status(immortalcontainer, pod)
-        self.customsapi.patch_namespaced_custom_object(
-            self.custom_group, self.custom_version,
-            immortalcontainer['metadata']['namespace'],
-            self.custom_plural, immortalcontainer['metadata']['name'],
-            new_status
-        )
+        try:
+            self.customsapi.patch_namespaced_custom_object_status(
+                self.custom_group, self.custom_version,
+                immortalcontainer['metadata']['namespace'],
+                self.custom_plural, immortalcontainer['metadata']['name'],
+                new_status
+            )
+        except Exception as e:
+            logger.error("Error updating status for ImmortalContainer {:s}/{:s}".format(
+                immortalcontainer['metadata']['namespace'], immortalcontainer['metadata']['name']))
 
     def _calculate_status(self, immortalcontainer, pod):
         """Calculates what the status of an ImmortalContainer should be """
         new_status = copy.deepcopy(immortalcontainer)
-        new_status['status'] = dict(currentPod=pod.metadata.name)
-        return new_status
-
-    def _get_status(self, immortalcontainer):
-        """Get the status from an ImmortalContainer. If `immortalcontainer`
-           has no status, returns a default status."""
-        if 'status' in immortalcontainer:
-            return immortalcontainer['status']
+        if 'status' in immortalcontainer and 'startTimes' in immortalcontainer['status']:
+            startTimes = immortalcontainer['status']['startTimes']+1
         else:
-            return dict(currentPod='')
+            startTimes = 1
+        new_status['status'] = dict(
+            currentPod=pod.metadata.name,
+            startTimes=startTimes
+        )
+        return new_status
 
     def _new_pod(self, immortalcontainer):
         """Returns the pod definition to create the pod for an ImmortalContainer"""

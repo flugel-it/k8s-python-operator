@@ -6,10 +6,16 @@ dep:
 docker-build:
 	docker build . -t ${IMG}
 
-# Install CRDs and RBACs into a cluster
-install:
+crds:
 	kubectl apply -f config/crds
+
+permissions:
 	kubectl apply -f config/rbac
+
+run: crds
+	python3 src/main.py --kubeconfig ~/.kube/config
+
+install: crds permissions
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: install

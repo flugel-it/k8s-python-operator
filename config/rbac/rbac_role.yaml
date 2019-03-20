@@ -2,7 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: manager-role
+  name: immortalcontainer-operator
 rules:
 - apiGroups:
   - ""
@@ -29,7 +29,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - exampleoperator.flugel.it
+  - immortalcontainer.flugel.it
   resources:
   - immortalcontainers
   verbs:

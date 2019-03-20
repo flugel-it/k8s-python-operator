@@ -6,13 +6,13 @@ from kubernetes import watch
 logger = logging.getLogger('threadedwatch')
 
 
-class ThreadedWatchStream(threading.Thread):
+class ThreadedWatcher(threading.Thread):
     """Watches Kubernetes resources event in a separate thread. Handlers for
     events can be registered using `add_handler`.
 
     Example:
         v1 = kubernetes.client.CoreV1Api()
-        watcher = ThreadedWatchStream(v1.list_pod_for_all_namespaces)
+        watcher = ThreadedWatcher(v1.list_pod_for_all_namespaces)
         def on_event(event):
             print(event)
         watcher.add_handler(on_event)
@@ -46,7 +46,10 @@ class ThreadedWatchStream(threading.Thread):
             self.func, *self.func_args, **self.func_kwargs)
         for event in stream:
             for handler in self.handlers:
-                handler(event)
+                try:
+                    handler(event)
+                except:
+                    logger.error("Error in event handler", exc_info=True)
 
     def stop(self):
         """Stops listening and dispatching events."""

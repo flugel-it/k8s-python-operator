@@ -6,7 +6,7 @@ from kubernetes import client, config
 
 import defs
 from controller import Controller
-from threadedwatch import ThreadedWatchStream
+from threadedwatch import ThreadedWatcher
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
@@ -15,7 +15,7 @@ logger = logging.getLogger()
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--kubeconfig', help='path tu kubeconfig file, only required if running outside of a cluster')
+        '--kubeconfig', help='path to kubeconfig file, only required if running outside of a cluster')
     args = parser.parse_args()
     if args.kubeconfig is not None:
         config.load_kube_config()
@@ -26,8 +26,8 @@ def main():
     customsapi = client.CustomObjectsApi()
 
     # Changing this it's possible to work on all the namespaces or choose only one
-    pods_watcher = ThreadedWatchStream(corev1api.list_pod_for_all_namespaces)
-    immortalcontainers_watcher = ThreadedWatchStream(
+    pods_watcher = ThreadedWatcher(corev1api.list_pod_for_all_namespaces)
+    immortalcontainers_watcher = ThreadedWatcher(
         customsapi.list_cluster_custom_object, defs.CUSTOM_GROUP,
         defs.CUSTOM_VERSION, defs.CUSTOM_PLURAL
     )

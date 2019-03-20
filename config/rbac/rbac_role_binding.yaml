@@ -1,13 +1,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  creationTimestamp: null
-  name: manager-rolebinding
+  name: immortalcontainer-operator-role-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: manager-role
+  name: immortalcontainer-operator
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: immortalcontainer-operator
   namespace: system
