@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: exampleoperatorpy-controller
+  name: immortalcontainers-controller
   labels:
-    app: exampleoperatorpy-controller
+    app: immortalcontainers-controller
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: exampleoperatorpy-controller
+      app: immortalcontainers-controller
   template:
     metadata:
       labels:
-        app: exampleoperatorpy-controller
+        app: immortalcontainers-controller
     spec:
-      serviceAccountName: immortalcontainer-operator
+      serviceAccountName: immortalcontainers-operator
       containers:
-      - image: flugelit/immortalcontainer-operator-py
-        name: exampleoperatorpy-controller
+      - image: flugelit/immortalcontainer-operator-py:dev
+        name: immortalcontainers-controller
